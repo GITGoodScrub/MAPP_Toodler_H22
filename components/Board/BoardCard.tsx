@@ -21,8 +21,9 @@ export const BoardCard: React.FC<BoardCardProps> = ({ board, onPress, onDelete }
                 source={{ uri: board.thumbnailPhoto }} 
                 style={styles.thumbnail}
                 resizeMode="cover"
+                pointerEvents="none"
             />
-            <View style={styles.overlay}>
+            <View style={styles.overlay} pointerEvents="box-none">
                 <View style={styles.content}>
                     <Text style={styles.name}>{board.name}</Text>
                     {board.description ? (

@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, TextInput, Alert, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, TextInput, Alert, ScrollView, SafeAreaView } from 'react-native';
 import { ListCard } from '../components/List';
 import { TaskCard } from '../components/Task';
 import { getListsByBoardId, createList, deleteList, getTasksByListId, createTask, deleteTask, toggleTaskCompletion } from '../Services';
@@ -117,7 +117,8 @@ export const BoardScreen: React.FC<BoardScreenProps> = ({ board, onBack }) =>
     const colorOptions = ['#007AFF', '#34C759', '#FF9500', '#FF3B30', '#AF52DE', '#FF2D55'];
 
     return (
-        <View style={styles.container}>
+        <SafeAreaView style={styles.safeArea}>
+            <View style={styles.container}>
             <View style={styles.header}>
                 {onBack && (
                     <TouchableOpacity 
@@ -208,13 +209,17 @@ export const BoardScreen: React.FC<BoardScreenProps> = ({ board, onBack }) =>
                         </View>
                     </View>
                 </View>
-            </Modal>
-        </View>
+                </Modal>
+            </View>
+        </SafeAreaView>
     );
-};
-
-const styles = StyleSheet.create(
+};const styles = StyleSheet.create(
 {
+    safeArea:
+    {
+        flex: 1,
+        backgroundColor: '#fff',
+    },
     container:
     {
         flex: 1,

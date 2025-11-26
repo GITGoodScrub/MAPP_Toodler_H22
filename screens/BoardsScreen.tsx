@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, TextInput, Alert, SafeAreaView } from 'react-native';
+import { router } from 'expo-router';
 import { BoardCard } from '../components/Board';
 import { getAllBoards, createBoard, deleteBoard } from '../Services';
 import { Board } from '../Services/types';
@@ -65,8 +66,17 @@ export const BoardsScreen: React.FC = () =>
 
     const handleBoardPress = (board: Board) =>
     {
-        // TODO: Navigate to board detail screen
-        console.log('Navigate to board:', board.name);
+        console.log('Board pressed:', board.name);
+        Alert.alert('Navigation', `Navigating to board: ${board.name}`);
+        try
+        {
+            router.push(`/board?boardId=${board.id}`);
+        }
+        catch (error)
+        {
+            console.error('Navigation error:', error);
+            Alert.alert('Error', 'Navigation failed. Check console.');
+        }
     };
 
     const renderBoard = ({ item }: { item: Board }) => (
@@ -78,91 +88,98 @@ export const BoardsScreen: React.FC = () =>
     );
 
     return (
-        <View style={styles.container}>
-            <View style={styles.header}>
-                <Text style={styles.title}>My Boards</Text>
-                <TouchableOpacity 
-                    style={styles.addButton}
-                    onPress={() => setModalVisible(true)}
+        <SafeAreaView style={styles.safeArea}>
+            <View style={styles.container}>
+                <View style={styles.header}>
+                    <Text style={styles.title}>My Boards</Text>
+                    <TouchableOpacity 
+                        style={styles.addButton}
+                        onPress={() => setModalVisible(true)}
+                    >
+                        <Text style={styles.addButtonText}>+ New Board</Text>
+                    </TouchableOpacity>
+                </View>
+
+                <FlatList
+                    data={boards}
+                    renderItem={renderBoard}
+                    keyExtractor={(item) => item.id.toString()}
+                    contentContainerStyle={styles.listContent}
+                    showsVerticalScrollIndicator={false}
+                />
+
+                <Modal
+                    visible={modalVisible}
+                    animationType="slide"
+                    transparent={true}
+                    onRequestClose={() => setModalVisible(false)}
                 >
-                    <Text style={styles.addButtonText}>+ New Board</Text>
-                </TouchableOpacity>
-            </View>
+                    <View style={styles.modalOverlay}>
+                        <View style={styles.modalContent}>
+                            <Text style={styles.modalTitle}>Create New Board</Text>
 
-            <FlatList
-                data={boards}
-                renderItem={renderBoard}
-                keyExtractor={(item) => item.id.toString()}
-                contentContainerStyle={styles.listContent}
-                showsVerticalScrollIndicator={false}
-            />
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Board Name *"
+                                value={newBoardName}
+                                onChangeText={setNewBoardName}
+                                maxLength={50}
+                            />
 
-            <Modal
-                visible={modalVisible}
-                animationType="slide"
-                transparent={true}
-                onRequestClose={() => setModalVisible(false)}
-            >
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>Create New Board</Text>
+                            <TextInput
+                                style={[styles.input, styles.textArea]}
+                                placeholder="Description (optional)"
+                                value={newBoardDescription}
+                                onChangeText={setNewBoardDescription}
+                                multiline
+                                numberOfLines={3}
+                                maxLength={200}
+                            />
 
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Board Name *"
-                            value={newBoardName}
-                            onChangeText={setNewBoardName}
-                            maxLength={50}
-                        />
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Thumbnail URL (optional)"
+                                value={newBoardThumbnail}
+                                onChangeText={setNewBoardThumbnail}
+                                keyboardType="url"
+                            />
 
-                        <TextInput
-                            style={[styles.input, styles.textArea]}
-                            placeholder="Description (optional)"
-                            value={newBoardDescription}
-                            onChangeText={setNewBoardDescription}
-                            multiline
-                            numberOfLines={3}
-                            maxLength={200}
-                        />
+                            <View style={styles.modalButtons}>
+                                <TouchableOpacity 
+                                    style={[styles.modalButton, styles.cancelButton]}
+                                    onPress={() =>
+                                    {
+                                        setModalVisible(false);
+                                        setNewBoardName('');
+                                        setNewBoardDescription('');
+                                        setNewBoardThumbnail('');
+                                    }}
+                                >
+                                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                                </TouchableOpacity>
 
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Thumbnail URL (optional)"
-                            value={newBoardThumbnail}
-                            onChangeText={setNewBoardThumbnail}
-                            keyboardType="url"
-                        />
-
-                        <View style={styles.modalButtons}>
-                            <TouchableOpacity 
-                                style={[styles.modalButton, styles.cancelButton]}
-                                onPress={() =>
-                                {
-                                    setModalVisible(false);
-                                    setNewBoardName('');
-                                    setNewBoardDescription('');
-                                    setNewBoardThumbnail('');
-                                }}
-                            >
-                                <Text style={styles.cancelButtonText}>Cancel</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity 
-                                style={[styles.modalButton, styles.createButton]}
-                                onPress={handleCreateBoard}
-                            >
-                                <Text style={styles.createButtonText}>Create</Text>
-                            </TouchableOpacity>
+                                <TouchableOpacity 
+                                    style={[styles.modalButton, styles.createButton]}
+                                    onPress={handleCreateBoard}
+                                >
+                                    <Text style={styles.createButtonText}>Create</Text>
+                                </TouchableOpacity>
+                            </View>
                         </View>
                     </View>
-                </View>
-            </Modal>
-        </View>
+                </Modal>
+            </View>
+        </SafeAreaView>
     );
 };
 
 const styles = StyleSheet.create(
 {
+    safeArea:
+    {
+        flex: 1,
+        backgroundColor: '#fff',
+    },
     container:
     {
         flex: 1,
