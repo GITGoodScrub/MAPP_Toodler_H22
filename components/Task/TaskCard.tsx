@@ -8,9 +8,10 @@ interface TaskCardProps
     onPress?: () => void;
     onToggleComplete?: () => void;
     onDelete?: () => void;
+    onMove?: () => void;
 }
 
-export const TaskCard: React.FC<TaskCardProps> = ({ task, onPress, onToggleComplete, onDelete }) =>
+export const TaskCard: React.FC<TaskCardProps> = ({ task, onPress, onToggleComplete, onDelete, onMove }) =>
 {
     return (
         <TouchableOpacity 
@@ -45,6 +46,19 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onPress, onToggleCompl
                         </Text>
                     ) : null}
                 </View>
+
+                {onMove && (
+                    <TouchableOpacity 
+                        style={styles.moveButton}
+                        onPress={(e) =>
+                        {
+                            e.stopPropagation();
+                            onMove();
+                        }}
+                    >
+                        <Text style={styles.moveText}>↔</Text>
+                    </TouchableOpacity>
+                )}
 
                 {onDelete && (
                     <TouchableOpacity 
@@ -149,6 +163,22 @@ const styles = StyleSheet.create(
     {
         fontSize: 20,
         color: '#666',
+        fontWeight: 'bold',
+    },
+    moveButton:
+    {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        backgroundColor: '#e3f2fd',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginLeft: 8,
+    },
+    moveText:
+    {
+        fontSize: 18,
+        color: '#007AFF',
         fontWeight: 'bold',
     },
 });

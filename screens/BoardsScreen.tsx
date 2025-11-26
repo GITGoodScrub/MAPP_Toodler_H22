@@ -66,17 +66,7 @@ export const BoardsScreen: React.FC = () =>
 
     const handleBoardPress = (board: Board) =>
     {
-        console.log('Board pressed:', board.name);
-        Alert.alert('Navigation', `Navigating to board: ${board.name}`);
-        try
-        {
-            router.push(`/board?boardId=${board.id}`);
-        }
-        catch (error)
-        {
-            console.error('Navigation error:', error);
-            Alert.alert('Error', 'Navigation failed. Check console.');
-        }
+        router.push(`/board?boardId=${board.id}`);
     };
 
     const renderBoard = ({ item }: { item: Board }) => (
