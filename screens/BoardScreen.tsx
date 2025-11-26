@@ -1,8 +1,8 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, TextInput, Alert, ScrollView, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, TextInput, Alert, ScrollView, SafeAreaView, Animated } from 'react-native';
 import { ListCard } from '../components/List';
 import { TaskCard } from '../components/Task';
-import { getListsByBoardId, createList, deleteList, getTasksByListId, createTask, deleteTask, toggleTaskCompletion } from '../Services';
+import { getListsByBoardId, createList, deleteList, getTasksByListId, createTask, deleteTask, toggleTaskCompletion, moveTaskToDifferentList } from '../Services';
 import { Board, List, Task } from '../Services/types';
 
 interface BoardScreenProps
@@ -23,6 +23,12 @@ export const BoardScreen: React.FC<BoardScreenProps> = ({ board, onBack }) =>
     const [selectedListId, setSelectedListId] = useState<number | null>(null);
     const [newTaskName, setNewTaskName] = useState('');
     const [newTaskDescription, setNewTaskDescription] = useState('');
+    
+    const [moveModalVisible, setMoveModalVisible] = useState(false);
+    const [taskToMove, setTaskToMove] = useState<Task | null>(null);
+    
+    const [showMoveConfirmation, setShowMoveConfirmation] = useState(false);
+    const [moveConfirmationOpacity] = useState(new Animated.Value(0));
 
     const refreshLists = useCallback(() =>
     {
@@ -85,6 +91,38 @@ export const BoardScreen: React.FC<BoardScreenProps> = ({ board, onBack }) =>
         refreshLists();
     };
 
+    const handleMoveTask = (task: Task) =>
+    {
+        setTaskToMove(task);
+        setMoveModalVisible(true);
+    };
+
+    const handleConfirmMoveTask = (targetListId: number) =>
+    {
+        if (taskToMove)
+        {
+            moveTaskToDifferentList(taskToMove.id, targetListId);
+            setMoveModalVisible(false);
+            setTaskToMove(null);
+            refreshLists();
+            
+            setShowMoveConfirmation(true);
+            Animated.sequence([
+                Animated.timing(moveConfirmationOpacity, {
+                    toValue: 1,
+                    duration: 300,
+                    useNativeDriver: true,
+                }),
+                Animated.delay(1000),
+                Animated.timing(moveConfirmationOpacity, {
+                    toValue: 0,
+                    duration: 500,
+                    useNativeDriver: true,
+                }),
+            ]).start(() => setShowMoveConfirmation(false));
+        }
+    };
+
     const handleAddTask = (listId: number) =>
     {
         setSelectedListId(listId);
@@ -131,6 +169,7 @@ export const BoardScreen: React.FC<BoardScreenProps> = ({ board, onBack }) =>
                                 task={task}
                                 onToggleComplete={() => handleToggleTask(task.id)}
                                 onDelete={() => handleDeleteTask(task.id)}
+                                onMove={() => handleMoveTask(task)}
                             />
                         ))}
                         <TouchableOpacity 
@@ -294,6 +333,72 @@ export const BoardScreen: React.FC<BoardScreenProps> = ({ board, onBack }) =>
                         </View>
                     </View>
                 </Modal>
+
+                <Modal
+                    visible={moveModalVisible}
+                    animationType="slide"
+                    transparent={true}
+                    onRequestClose={() => setMoveModalVisible(false)}
+                >
+                    <TouchableOpacity 
+                        style={styles.modalOverlay}
+                        activeOpacity={1}
+                        onPress={() =>
+                        {
+                            setMoveModalVisible(false);
+                            setTaskToMove(null);
+                        }}
+                    >
+                        <TouchableOpacity 
+                            style={styles.modalContent}
+                            activeOpacity={1}
+                            onPress={(e) => e.stopPropagation()}
+                        >
+                            <Text style={styles.modalTitle}>Move Task To...</Text>
+                            
+                            {taskToMove && (
+                                <Text style={styles.taskMoveLabel}>"{taskToMove.name}"</Text>
+                            )}
+
+                            <ScrollView style={styles.listSelectionContainer}>
+                                {lists
+                                    .filter(list => list.id !== taskToMove?.listId)
+                                    .map((list) => (
+                                        <TouchableOpacity
+                                            key={list.id}
+                                            style={styles.listSelectionItem}
+                                            onPress={() => handleConfirmMoveTask(list.id)}
+                                        >
+                                            <View style={[styles.listColorIndicator, { backgroundColor: list.color }]} />
+                                            <Text style={styles.listSelectionText}>{list.name}</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                            </ScrollView>
+
+                            <TouchableOpacity 
+                                style={[styles.modalButton, styles.cancelButton]}
+                                onPress={() =>
+                                {
+                                    setMoveModalVisible(false);
+                                    setTaskToMove(null);
+                                }}
+                            >
+                                <Text style={styles.cancelButtonText}>Cancel</Text>
+                            </TouchableOpacity>
+                        </TouchableOpacity>
+                    </TouchableOpacity>
+                </Modal>
+                
+                {showMoveConfirmation && (
+                    <Animated.View 
+                        style={[
+                            styles.confirmationToast,
+                            { opacity: moveConfirmationOpacity }
+                        ]}
+                    >
+                        <Text style={styles.confirmationText}>✓ Task moved successfully</Text>
+                    </Animated.View>
+                )}
             </View>
         </SafeAreaView>
     );
@@ -477,6 +582,61 @@ export const BoardScreen: React.FC<BoardScreenProps> = ({ board, onBack }) =>
         backgroundColor: '#007AFF',
     },
     createButtonText:
+    {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    taskMoveLabel:
+    {
+        fontSize: 14,
+        color: '#666',
+        marginBottom: 16,
+        fontStyle: 'italic',
+    },
+    listSelectionContainer:
+    {
+        maxHeight: 300,
+        marginBottom: 16,
+    },
+    listSelectionItem:
+    {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 16,
+        backgroundColor: '#f8f8f8',
+        borderRadius: 8,
+        marginBottom: 8,
+    },
+    listColorIndicator:
+    {
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        marginRight: 12,
+    },
+    listSelectionText:
+    {
+        fontSize: 16,
+        color: '#333',
+    },
+    confirmationToast:
+    {
+        position: 'absolute',
+        bottom: 100,
+        left: 20,
+        right: 20,
+        backgroundColor: '#4CAF50',
+        padding: 16,
+        borderRadius: 8,
+        alignItems: 'center',
+        elevation: 5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+    },
+    confirmationText:
     {
         color: '#fff',
         fontSize: 16,
