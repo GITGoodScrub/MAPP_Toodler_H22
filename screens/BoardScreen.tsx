@@ -18,6 +18,11 @@ export const BoardScreen: React.FC<BoardScreenProps> = ({ board, onBack }) =>
     const [newListName, setNewListName] = useState('');
     const [newListColor, setNewListColor] = useState('#007AFF');
     const [expandedListId, setExpandedListId] = useState<number | null>(null);
+    
+    const [taskModalVisible, setTaskModalVisible] = useState(false);
+    const [selectedListId, setSelectedListId] = useState<number | null>(null);
+    const [newTaskName, setNewTaskName] = useState('');
+    const [newTaskDescription, setNewTaskDescription] = useState('');
 
     const refreshLists = useCallback(() =>
     {
@@ -80,6 +85,30 @@ export const BoardScreen: React.FC<BoardScreenProps> = ({ board, onBack }) =>
         refreshLists();
     };
 
+    const handleAddTask = (listId: number) =>
+    {
+        setSelectedListId(listId);
+        setTaskModalVisible(true);
+    };
+
+    const handleCreateTask = () =>
+    {
+        if (!newTaskName.trim())
+        {
+            Alert.alert('Error', 'Task name is required');
+            return;
+        }
+
+        if (selectedListId !== null)
+        {
+            createTask(newTaskName.trim(), newTaskDescription.trim(), selectedListId);
+            setNewTaskName('');
+            setNewTaskDescription('');
+            setTaskModalVisible(false);
+            refreshLists();
+        }
+    };
+
     const renderList = ({ item }: { item: List }) =>
     {
         const tasks = getTasksByListId(item.id);
@@ -96,18 +125,20 @@ export const BoardScreen: React.FC<BoardScreenProps> = ({ board, onBack }) =>
                 
                 {isExpanded && (
                     <View style={styles.tasksContainer}>
-                        {tasks.length === 0 ? (
-                            <Text style={styles.noTasksText}>No tasks yet</Text>
-                        ) : (
-                            tasks.map((task) => (
-                                <TaskCard
-                                    key={task.id}
-                                    task={task}
-                                    onToggleComplete={() => handleToggleTask(task.id)}
-                                    onDelete={() => handleDeleteTask(task.id)}
-                                />
-                            ))
-                        )}
+                        {tasks.map((task) => (
+                            <TaskCard
+                                key={task.id}
+                                task={task}
+                                onToggleComplete={() => handleToggleTask(task.id)}
+                                onDelete={() => handleDeleteTask(task.id)}
+                            />
+                        ))}
+                        <TouchableOpacity 
+                            style={styles.addButton}
+                            onPress={() => handleAddTask(item.id)}
+                        >
+                            <Text style={styles.addButtonText}>+ Add Task</Text>
+                        </TouchableOpacity>
                     </View>
                 )}
             </View>
@@ -209,6 +240,59 @@ export const BoardScreen: React.FC<BoardScreenProps> = ({ board, onBack }) =>
                         </View>
                     </View>
                 </View>
+                </Modal>
+
+                <Modal
+                    visible={taskModalVisible}
+                    animationType="slide"
+                    transparent={true}
+                    onRequestClose={() => setTaskModalVisible(false)}
+                >
+                    <View style={styles.modalOverlay}>
+                        <View style={styles.modalContent}>
+                            <Text style={styles.modalTitle}>Create New Task</Text>
+
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Task Name *"
+                                value={newTaskName}
+                                onChangeText={setNewTaskName}
+                                maxLength={100}
+                            />
+
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Description (optional)"
+                                value={newTaskDescription}
+                                onChangeText={setNewTaskDescription}
+                                multiline
+                                numberOfLines={3}
+                                maxLength={200}
+                            />
+
+                            <View style={styles.modalButtons}>
+                                <TouchableOpacity 
+                                    style={[styles.modalButton, styles.cancelButton]}
+                                    onPress={() =>
+                                    {
+                                        setTaskModalVisible(false);
+                                        setNewTaskName('');
+                                        setNewTaskDescription('');
+                                        setSelectedListId(null);
+                                    }}
+                                >
+                                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity 
+                                    style={[styles.modalButton, styles.createButton]}
+                                    onPress={handleCreateTask}
+                                >
+                                    <Text style={styles.createButtonText}>Create</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </View>
                 </Modal>
             </View>
         </SafeAreaView>
