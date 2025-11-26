@@ -5,6 +5,10 @@
         "strict": true,
         "resolveJsonModule": true,
         "esModuleInterop": true,
-        "skipLibCheck": true
+        "skipLibCheck": true,
+        "paths":
+        {
+            "@/*": ["./*"]
+        }
     }
 }
