@@ -29,6 +29,18 @@ export const BoardScreen: React.FC<BoardScreenProps> = ({ board, onBack }) =>
     
     const [showMoveConfirmation, setShowMoveConfirmation] = useState(false);
     const [moveConfirmationOpacity] = useState(new Animated.Value(0));
+    
+    const [showListCreateConfirmation, setShowListCreateConfirmation] = useState(false);
+    const [listCreateConfirmationOpacity] = useState(new Animated.Value(0));
+    
+    const [showTaskCreateConfirmation, setShowTaskCreateConfirmation] = useState(false);
+    const [taskCreateConfirmationOpacity] = useState(new Animated.Value(0));
+    
+    const [showListDeleteConfirmation, setShowListDeleteConfirmation] = useState(false);
+    const [listDeleteConfirmationOpacity] = useState(new Animated.Value(0));
+    
+    const [showTaskDeleteConfirmation, setShowTaskDeleteConfirmation] = useState(false);
+    const [taskDeleteConfirmationOpacity] = useState(new Animated.Value(0));
 
     const refreshLists = useCallback(() =>
     {
@@ -49,6 +61,21 @@ export const BoardScreen: React.FC<BoardScreenProps> = ({ board, onBack }) =>
         setNewListColor('#007AFF');
         setModalVisible(false);
         refreshLists();
+        
+        setShowListCreateConfirmation(true);
+        Animated.sequence([
+            Animated.timing(listCreateConfirmationOpacity, {
+                toValue: 1,
+                duration: 300,
+                useNativeDriver: true,
+            }),
+            Animated.delay(1000),
+            Animated.timing(listCreateConfirmationOpacity, {
+                toValue: 0,
+                duration: 500,
+                useNativeDriver: true,
+            }),
+        ]).start(() => setShowListCreateConfirmation(false));
     };
 
     const handleDeleteList = (listId: number, listName: string) =>
@@ -68,6 +95,21 @@ export const BoardScreen: React.FC<BoardScreenProps> = ({ board, onBack }) =>
                     {
                         deleteList(listId);
                         refreshLists();
+                        
+                        setShowListDeleteConfirmation(true);
+                        Animated.sequence([
+                            Animated.timing(listDeleteConfirmationOpacity, {
+                                toValue: 1,
+                                duration: 300,
+                                useNativeDriver: true,
+                            }),
+                            Animated.delay(1000),
+                            Animated.timing(listDeleteConfirmationOpacity, {
+                                toValue: 0,
+                                duration: 500,
+                                useNativeDriver: true,
+                            }),
+                        ]).start(() => setShowListDeleteConfirmation(false));
                     },
                 },
             ]
@@ -87,8 +129,40 @@ export const BoardScreen: React.FC<BoardScreenProps> = ({ board, onBack }) =>
 
     const handleDeleteTask = (taskId: number) =>
     {
-        deleteTask(taskId);
-        refreshLists();
+        Alert.alert(
+            'Delete Task',
+            'Are you sure you want to delete this task?',
+            [
+                {
+                    text: 'Cancel',
+                    style: 'cancel',
+                },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: () =>
+                    {
+                        deleteTask(taskId);
+                        refreshLists();
+                        
+                        setShowTaskDeleteConfirmation(true);
+                        Animated.sequence([
+                            Animated.timing(taskDeleteConfirmationOpacity, {
+                                toValue: 1,
+                                duration: 300,
+                                useNativeDriver: true,
+                            }),
+                            Animated.delay(1000),
+                            Animated.timing(taskDeleteConfirmationOpacity, {
+                                toValue: 0,
+                                duration: 500,
+                                useNativeDriver: true,
+                            }),
+                        ]).start(() => setShowTaskDeleteConfirmation(false));
+                    },
+                },
+            ]
+        );
     };
 
     const handleMoveTask = (task: Task) =>
@@ -144,6 +218,21 @@ export const BoardScreen: React.FC<BoardScreenProps> = ({ board, onBack }) =>
             setNewTaskDescription('');
             setTaskModalVisible(false);
             refreshLists();
+            
+            setShowTaskCreateConfirmation(true);
+            Animated.sequence([
+                Animated.timing(taskCreateConfirmationOpacity, {
+                    toValue: 1,
+                    duration: 300,
+                    useNativeDriver: true,
+                }),
+                Animated.delay(1000),
+                Animated.timing(taskCreateConfirmationOpacity, {
+                    toValue: 0,
+                    duration: 500,
+                    useNativeDriver: true,
+                }),
+            ]).start(() => setShowTaskCreateConfirmation(false));
         }
     };
 
@@ -397,6 +486,50 @@ export const BoardScreen: React.FC<BoardScreenProps> = ({ board, onBack }) =>
                         ]}
                     >
                         <Text style={styles.confirmationText}>✓ Task moved successfully</Text>
+                    </Animated.View>
+                )}
+                
+                {showListCreateConfirmation && (
+                    <Animated.View 
+                        style={[
+                            styles.confirmationToast,
+                            { opacity: listCreateConfirmationOpacity }
+                        ]}
+                    >
+                        <Text style={styles.confirmationText}>✓ List created successfully</Text>
+                    </Animated.View>
+                )}
+                
+                {showTaskCreateConfirmation && (
+                    <Animated.View 
+                        style={[
+                            styles.confirmationToast,
+                            { opacity: taskCreateConfirmationOpacity }
+                        ]}
+                    >
+                        <Text style={styles.confirmationText}>✓ Task created successfully</Text>
+                    </Animated.View>
+                )}
+                
+                {showListDeleteConfirmation && (
+                    <Animated.View 
+                        style={[
+                            styles.confirmationToast,
+                            { opacity: listDeleteConfirmationOpacity }
+                        ]}
+                    >
+                        <Text style={styles.confirmationText}>✓ List deleted successfully</Text>
+                    </Animated.View>
+                )}
+                
+                {showTaskDeleteConfirmation && (
+                    <Animated.View 
+                        style={[
+                            styles.confirmationToast,
+                            { opacity: taskDeleteConfirmationOpacity }
+                        ]}
+                    >
+                        <Text style={styles.confirmationText}>✓ Task deleted successfully</Text>
                     </Animated.View>
                 )}
             </View>

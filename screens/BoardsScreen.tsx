@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, TextInput, Alert, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, TextInput, Alert, SafeAreaView, Animated } from 'react-native';
 import { router } from 'expo-router';
 import { BoardCard } from '../components/Board';
 import { getAllBoards, createBoard, deleteBoard } from '../Services';
@@ -12,6 +12,12 @@ export const BoardsScreen: React.FC = () =>
     const [newBoardName, setNewBoardName] = useState('');
     const [newBoardDescription, setNewBoardDescription] = useState('');
     const [newBoardThumbnail, setNewBoardThumbnail] = useState('');
+    
+    const [showCreateConfirmation, setShowCreateConfirmation] = useState(false);
+    const [createConfirmationOpacity] = useState(new Animated.Value(0));
+    
+    const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+    const [deleteConfirmationOpacity] = useState(new Animated.Value(0));
 
     const refreshBoards = useCallback(() =>
     {
@@ -39,6 +45,21 @@ export const BoardsScreen: React.FC = () =>
         setNewBoardThumbnail('');
         setModalVisible(false);
         refreshBoards();
+        
+        setShowCreateConfirmation(true);
+        Animated.sequence([
+            Animated.timing(createConfirmationOpacity, {
+                toValue: 1,
+                duration: 300,
+                useNativeDriver: true,
+            }),
+            Animated.delay(1000),
+            Animated.timing(createConfirmationOpacity, {
+                toValue: 0,
+                duration: 500,
+                useNativeDriver: true,
+            }),
+        ]).start(() => setShowCreateConfirmation(false));
     };
 
     const handleDeleteBoard = (boardId: number, boardName: string) =>
@@ -58,6 +79,21 @@ export const BoardsScreen: React.FC = () =>
                     {
                         deleteBoard(boardId);
                         refreshBoards();
+                        
+                        setShowDeleteConfirmation(true);
+                        Animated.sequence([
+                            Animated.timing(deleteConfirmationOpacity, {
+                                toValue: 1,
+                                duration: 300,
+                                useNativeDriver: true,
+                            }),
+                            Animated.delay(1000),
+                            Animated.timing(deleteConfirmationOpacity, {
+                                toValue: 0,
+                                duration: 500,
+                                useNativeDriver: true,
+                            }),
+                        ]).start(() => setShowDeleteConfirmation(false));
                     },
                 },
             ]
@@ -158,6 +194,28 @@ export const BoardsScreen: React.FC = () =>
                         </View>
                     </View>
                 </Modal>
+                
+                {showCreateConfirmation && (
+                    <Animated.View 
+                        style={[
+                            styles.confirmationToast,
+                            { opacity: createConfirmationOpacity }
+                        ]}
+                    >
+                        <Text style={styles.confirmationText}>✓ Board created successfully</Text>
+                    </Animated.View>
+                )}
+                
+                {showDeleteConfirmation && (
+                    <Animated.View 
+                        style={[
+                            styles.confirmationToast,
+                            { opacity: deleteConfirmationOpacity }
+                        ]}
+                    >
+                        <Text style={styles.confirmationText}>✓ Board deleted successfully</Text>
+                    </Animated.View>
+                )}
             </View>
         </SafeAreaView>
     );
@@ -273,6 +331,28 @@ const styles = StyleSheet.create(
         backgroundColor: '#007AFF',
     },
     createButtonText:
+    {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    confirmationToast:
+    {
+        position: 'absolute',
+        bottom: 100,
+        left: 20,
+        right: 20,
+        backgroundColor: '#4CAF50',
+        padding: 16,
+        borderRadius: 8,
+        alignItems: 'center',
+        elevation: 5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+    },
+    confirmationText:
     {
         color: '#fff',
         fontSize: 16,
