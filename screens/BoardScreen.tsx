@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, TextInput, Alert, ScrollView, SafeAreaView, Animated } from 'react-native';
 import { ListCard } from '../components/List';
 import { TaskCard } from '../components/Task';
-import { getListsByBoardId, createList, deleteList, getTasksByListId, createTask, deleteTask, toggleTaskCompletion, moveTaskToDifferentList } from '../Services';
+import { getListsByBoardId, createList, deleteList, updateList, getTasksByListId, createTask, deleteTask, updateTask, toggleTaskCompletion, moveTaskToDifferentList } from '../Services';
 import { Board, List, Task } from '../Services/types';
 
 interface BoardScreenProps
@@ -33,14 +33,32 @@ export const BoardScreen: React.FC<BoardScreenProps> = ({ board, onBack }) =>
     const [showListCreateConfirmation, setShowListCreateConfirmation] = useState(false);
     const [listCreateConfirmationOpacity] = useState(new Animated.Value(0));
     
+    const [showListUpdateConfirmation, setShowListUpdateConfirmation] = useState(false);
+    const [listUpdateConfirmationOpacity] = useState(new Animated.Value(0));
+    
     const [showTaskCreateConfirmation, setShowTaskCreateConfirmation] = useState(false);
     const [taskCreateConfirmationOpacity] = useState(new Animated.Value(0));
+    
+    const [showTaskUpdateConfirmation, setShowTaskUpdateConfirmation] = useState(false);
+    const [taskUpdateConfirmationOpacity] = useState(new Animated.Value(0));
     
     const [showListDeleteConfirmation, setShowListDeleteConfirmation] = useState(false);
     const [listDeleteConfirmationOpacity] = useState(new Animated.Value(0));
     
     const [showTaskDeleteConfirmation, setShowTaskDeleteConfirmation] = useState(false);
     const [taskDeleteConfirmationOpacity] = useState(new Animated.Value(0));
+    
+    const [editListModalVisible, setEditListModalVisible] = useState(false);
+    const [editingList, setEditingList] = useState<List | null>(null);
+    const [editListName, setEditListName] = useState('');
+    const [editListColor, setEditListColor] = useState('#007AFF');
+    const [showEditListCancelConfirmation, setShowEditListCancelConfirmation] = useState(false);
+    
+    const [editTaskModalVisible, setEditTaskModalVisible] = useState(false);
+    const [editingTask, setEditingTask] = useState<Task | null>(null);
+    const [editTaskName, setEditTaskName] = useState('');
+    const [editTaskDescription, setEditTaskDescription] = useState('');
+    const [showEditTaskCancelConfirmation, setShowEditTaskCancelConfirmation] = useState(false);
 
     const refreshLists = useCallback(() =>
     {
@@ -203,6 +221,170 @@ export const BoardScreen: React.FC<BoardScreenProps> = ({ board, onBack }) =>
         setTaskModalVisible(true);
     };
 
+    const handleEditList = (list: List) =>
+    {
+        setEditingList(list);
+        setEditListName(list.name);
+        setEditListColor(list.color);
+        setEditListModalVisible(true);
+    };
+
+    const handleUpdateList = () =>
+    {
+        if (!editListName.trim())
+        {
+            Alert.alert('Error', 'List name is required');
+            return;
+        }
+
+        if (editingList)
+        {
+            updateList(editingList.id, {
+                name: editListName.trim(),
+                color: editListColor
+            });
+
+            setEditListModalVisible(false);
+            setEditingList(null);
+            setEditListName('');
+            setEditListColor('#007AFF');
+            refreshLists();
+            
+            setShowListUpdateConfirmation(true);
+            Animated.sequence([
+                Animated.timing(listUpdateConfirmationOpacity, {
+                    toValue: 1,
+                    duration: 300,
+                    useNativeDriver: true,
+                }),
+                Animated.delay(1000),
+                Animated.timing(listUpdateConfirmationOpacity, {
+                    toValue: 0,
+                    duration: 500,
+                    useNativeDriver: true,
+                }),
+            ]).start(() => setShowListUpdateConfirmation(false));
+        }
+    };
+
+    const handleEditTask = (task: Task) =>
+    {
+        setEditingTask(task);
+        setEditTaskName(task.name);
+        setEditTaskDescription(task.description);
+        setEditTaskModalVisible(true);
+    };
+
+    const handleUpdateTask = () =>
+    {
+        if (!editTaskName.trim())
+        {
+            Alert.alert('Error', 'Task name is required');
+            return;
+        }
+
+        if (editingTask)
+        {
+            updateTask(editingTask.id, {
+                name: editTaskName.trim(),
+                description: editTaskDescription.trim()
+            });
+
+            setEditTaskModalVisible(false);
+            setEditingTask(null);
+            setEditTaskName('');
+            setEditTaskDescription('');
+            refreshLists();
+            
+            setShowTaskUpdateConfirmation(true);
+            Animated.sequence([
+                Animated.timing(taskUpdateConfirmationOpacity, {
+                    toValue: 1,
+                    duration: 300,
+                    useNativeDriver: true,
+                }),
+                Animated.delay(1000),
+                Animated.timing(taskUpdateConfirmationOpacity, {
+                    toValue: 0,
+                    duration: 500,
+                    useNativeDriver: true,
+                }),
+            ]).start(() => setShowTaskUpdateConfirmation(false));
+        }
+    };
+
+    const listHasChanges = editingList && (
+        editListName !== editingList.name ||
+        editListColor !== editingList.color
+    );
+
+    const taskHasChanges = editingTask && (
+        editTaskName !== editingTask.name ||
+        editTaskDescription !== editingTask.description
+    );
+
+    const handleEditListCancel = () =>
+    {
+        if (listHasChanges)
+        {
+            setEditListModalVisible(false);
+            setShowEditListCancelConfirmation(true);
+        }
+        else
+        {
+            setEditListModalVisible(false);
+            setEditingList(null);
+            setEditListName('');
+            setEditListColor('#007AFF');
+        }
+    };
+
+    const handleKeepEditingList = () =>
+    {
+        setShowEditListCancelConfirmation(false);
+        setEditListModalVisible(true);
+    };
+
+    const handleConfirmDiscardList = () =>
+    {
+        setShowEditListCancelConfirmation(false);
+        setEditListModalVisible(false);
+        setEditingList(null);
+        setEditListName('');
+        setEditListColor('#007AFF');
+    };
+
+    const handleEditTaskCancel = () =>
+    {
+        if (taskHasChanges)
+        {
+            setEditTaskModalVisible(false);
+            setShowEditTaskCancelConfirmation(true);
+        }
+        else
+        {
+            setEditTaskModalVisible(false);
+            setEditingTask(null);
+            setEditTaskName('');
+            setEditTaskDescription('');
+        }
+    };
+
+    const handleKeepEditingTask = () =>
+    {
+        setShowEditTaskCancelConfirmation(false);
+        setEditTaskModalVisible(true);
+    };
+
+    const handleConfirmDiscardTask = () =>
+    {
+        setShowEditTaskCancelConfirmation(false);
+        setEditTaskModalVisible(false);
+        setEditingTask(null);
+        setEditTaskName('');
+        setEditTaskDescription('');
+    };
+
     const handleCreateTask = () =>
     {
         if (!newTaskName.trim())
@@ -248,6 +430,7 @@ export const BoardScreen: React.FC<BoardScreenProps> = ({ board, onBack }) =>
                     taskCount={tasks.length}
                     onPress={() => handleListPress(item.id)}
                     onDelete={() => handleDeleteList(item.id, item.name)}
+                    onEdit={() => handleEditList(item)}
                 />
                 
                 {isExpanded && (
@@ -259,6 +442,7 @@ export const BoardScreen: React.FC<BoardScreenProps> = ({ board, onBack }) =>
                                 onToggleComplete={() => handleToggleTask(task.id)}
                                 onDelete={() => handleDeleteTask(task.id)}
                                 onMove={() => handleMoveTask(task)}
+                                onEdit={() => handleEditTask(task)}
                             />
                         ))}
                         <TouchableOpacity 
@@ -478,14 +662,184 @@ export const BoardScreen: React.FC<BoardScreenProps> = ({ board, onBack }) =>
                     </TouchableOpacity>
                 </Modal>
                 
+                <Modal
+                    visible={editListModalVisible}
+                    animationType="slide"
+                    transparent={true}
+                    onRequestClose={() => setEditListModalVisible(false)}
+                >
+                    <View style={styles.modalOverlay}>
+                        <View style={styles.modalContent}>
+                            <Text style={styles.modalTitle}>Edit List</Text>
+
+                            <TextInput
+                                style={styles.input}
+                                placeholder="List Name *"
+                                value={editListName}
+                                onChangeText={setEditListName}
+                                maxLength={50}
+                            />
+
+                            <Text style={styles.colorLabel}>List Color</Text>
+                            <View style={styles.colorPicker}>
+                                {colorOptions.map((color) => (
+                                    <TouchableOpacity
+                                        key={color}
+                                        style={[
+                                            styles.colorOption,
+                                            { backgroundColor: color },
+                                            editListColor === color && styles.colorOptionSelected
+                                        ]}
+                                        onPress={() => setEditListColor(color)}
+                                    />
+                                ))}
+                            </View>
+
+                            <View style={styles.modalButtons}>
+                                <TouchableOpacity
+                                    activeOpacity={0.7}
+                                    style={[styles.modalButton, styles.cancelButton]}
+                                    onPress={handleEditListCancel}
+                                >
+                                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity 
+                                    style={[styles.modalButton, styles.createButton, !listHasChanges && styles.disabledButton]}
+                                    onPress={handleUpdateList}
+                                    disabled={!listHasChanges}
+                                >
+                                    <Text style={[styles.createButtonText, !listHasChanges && styles.disabledButtonText]}>Update</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </View>
+                </Modal>
+                
+                {/* List Edit Cancel Confirmation */}
+                <Modal
+                    animationType="fade"
+                    transparent={true}
+                    visible={showEditListCancelConfirmation}
+                    onRequestClose={() => setShowEditListCancelConfirmation(false)}
+                >
+                    <View style={styles.confirmationOverlay}>
+                        <View style={styles.confirmationDialog}>
+                            <Text style={styles.confirmationTitle}>Discard Changes?</Text>
+                            <Text style={styles.confirmationText}>
+                                You have unsaved changes. Are you sure you want to discard them?
+                            </Text>
+                            <View style={styles.confirmationButtons}>
+                                <TouchableOpacity
+                                    activeOpacity={0.7}
+                                    style={[styles.confirmationButton, styles.confirmationCancelButton]}
+                                    onPress={handleKeepEditingList}
+                                >
+                                    <Text style={styles.confirmationButtonText}>Keep Editing</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    activeOpacity={0.7}
+                                    style={[styles.confirmationButton, styles.confirmationDeleteButton]}
+                                    onPress={handleConfirmDiscardList}
+                                >
+                                    <Text style={styles.confirmationButtonText}>Discard</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </View>
+                </Modal>
+                
+                <Modal
+                    visible={editTaskModalVisible}
+                    animationType="slide"
+                    transparent={true}
+                    onRequestClose={() => setEditTaskModalVisible(false)}
+                >
+                    <View style={styles.modalOverlay}>
+                        <View style={styles.modalContent}>
+                            <Text style={styles.modalTitle}>Edit Task</Text>
+
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Task Name *"
+                                value={editTaskName}
+                                onChangeText={setEditTaskName}
+                                maxLength={100}
+                            />
+
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Description (optional)"
+                                value={editTaskDescription}
+                                onChangeText={setEditTaskDescription}
+                                multiline
+                                numberOfLines={3}
+                                maxLength={200}
+                            />
+
+                            <View style={styles.modalButtons}>
+                                <TouchableOpacity
+                                    activeOpacity={0.7}
+                                    style={[styles.modalButton, styles.cancelButton]}
+                                    onPress={handleEditTaskCancel}
+                                >
+                                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity 
+                                    style={[styles.modalButton, styles.createButton, !taskHasChanges && styles.disabledButton]}
+                                    onPress={handleUpdateTask}
+                                    disabled={!taskHasChanges}
+                                >
+                                    <Text style={[styles.createButtonText, !taskHasChanges && styles.disabledButtonText]}>Update</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </View>
+                </Modal>
+                
+                {/* Task Edit Cancel Confirmation */}
+                <Modal
+                    animationType="fade"
+                    transparent={true}
+                    visible={showEditTaskCancelConfirmation}
+                    onRequestClose={() => setShowEditTaskCancelConfirmation(false)}
+                >
+                    <View style={styles.confirmationOverlay}>
+                        <View style={styles.confirmationDialog}>
+                            <Text style={styles.confirmationTitle}>Discard Changes?</Text>
+                            <Text style={styles.confirmationText}>
+                                You have unsaved changes. Are you sure you want to discard them?
+                            </Text>
+                            <View style={styles.confirmationButtons}>
+                                <TouchableOpacity
+                                    activeOpacity={0.7}
+                                    style={[styles.confirmationButton, styles.confirmationCancelButton]}
+                                    onPress={handleKeepEditingTask}
+                                >
+                                    <Text style={styles.confirmationButtonText}>Keep Editing</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    activeOpacity={0.7}
+                                    style={[styles.confirmationButton, styles.confirmationDeleteButton]}
+                                    onPress={handleConfirmDiscardTask}
+                                >
+                                    <Text style={styles.confirmationButtonText}>Discard</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </View>
+                </Modal>
+                
                 {showMoveConfirmation && (
                     <Animated.View 
                         style={[
                             styles.confirmationToast,
                             { opacity: moveConfirmationOpacity }
                         ]}
+                        pointerEvents="none"
                     >
-                        <Text style={styles.confirmationText}>✓ Task moved successfully</Text>
+                        <Text style={styles.confirmationToastText}>✓ Task moved successfully</Text>
                     </Animated.View>
                 )}
                 
@@ -495,8 +849,21 @@ export const BoardScreen: React.FC<BoardScreenProps> = ({ board, onBack }) =>
                             styles.confirmationToast,
                             { opacity: listCreateConfirmationOpacity }
                         ]}
+                        pointerEvents="none"
                     >
-                        <Text style={styles.confirmationText}>✓ List created successfully</Text>
+                        <Text style={styles.confirmationToastText}>✓ List created successfully</Text>
+                    </Animated.View>
+                )}
+                
+                {showListUpdateConfirmation && (
+                    <Animated.View 
+                        style={[
+                            styles.confirmationToast,
+                            { opacity: listUpdateConfirmationOpacity }
+                        ]}
+                        pointerEvents="none"
+                    >
+                        <Text style={styles.confirmationToastText}>✓ Changes saved successfully</Text>
                     </Animated.View>
                 )}
                 
@@ -506,8 +873,21 @@ export const BoardScreen: React.FC<BoardScreenProps> = ({ board, onBack }) =>
                             styles.confirmationToast,
                             { opacity: taskCreateConfirmationOpacity }
                         ]}
+                        pointerEvents="none"
                     >
-                        <Text style={styles.confirmationText}>✓ Task created successfully</Text>
+                        <Text style={styles.confirmationToastText}>✓ Task created successfully</Text>
+                    </Animated.View>
+                )}
+                
+                {showTaskUpdateConfirmation && (
+                    <Animated.View 
+                        style={[
+                            styles.confirmationToast,
+                            { opacity: taskUpdateConfirmationOpacity }
+                        ]}
+                        pointerEvents="none"
+                    >
+                        <Text style={styles.confirmationToastText}>✓ Changes saved successfully</Text>
                     </Animated.View>
                 )}
                 
@@ -517,8 +897,9 @@ export const BoardScreen: React.FC<BoardScreenProps> = ({ board, onBack }) =>
                             styles.confirmationToast,
                             { opacity: listDeleteConfirmationOpacity }
                         ]}
+                        pointerEvents="none"
                     >
-                        <Text style={styles.confirmationText}>✓ List deleted successfully</Text>
+                        <Text style={styles.confirmationToastText}>✓ List deleted successfully</Text>
                     </Animated.View>
                 )}
                 
@@ -528,8 +909,9 @@ export const BoardScreen: React.FC<BoardScreenProps> = ({ board, onBack }) =>
                             styles.confirmationToast,
                             { opacity: taskDeleteConfirmationOpacity }
                         ]}
+                        pointerEvents="none"
                     >
-                        <Text style={styles.confirmationText}>✓ Task deleted successfully</Text>
+                        <Text style={styles.confirmationToastText}>✓ Task deleted successfully</Text>
                     </Animated.View>
                 )}
             </View>
@@ -769,7 +1151,78 @@ export const BoardScreen: React.FC<BoardScreenProps> = ({ board, onBack }) =>
         shadowOpacity: 0.25,
         shadowRadius: 4,
     },
+    confirmationToastText:
+    {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '600',
+    },
     confirmationText:
+    {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    disabledButton:
+    {
+        backgroundColor: '#ccc',
+        opacity: 0.6,
+    },
+    disabledButtonText:
+    {
+        color: '#999',
+    },
+    confirmationOverlay:
+    {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    confirmationDialog:
+    {
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        padding: 24,
+        width: '80%',
+        maxWidth: 400,
+        elevation: 5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+    },
+    confirmationTitle:
+    {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#333',
+        marginBottom: 12,
+        textAlign: 'center',
+    },
+    confirmationButtons:
+    {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: 20,
+        gap: 12,
+    },
+    confirmationButton:
+    {
+        flex: 1,
+        padding: 12,
+        borderRadius: 8,
+        alignItems: 'center',
+    },
+    confirmationCancelButton:
+    {
+        backgroundColor: '#6c757d',
+    },
+    confirmationDeleteButton:
+    {
+        backgroundColor: '#dc3545',
+    },
+    confirmationButtonText:
     {
         color: '#fff',
         fontSize: 16,

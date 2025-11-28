@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, TextInput, Alert, SafeAreaView, Animated } from 'react-native';
 import { router } from 'expo-router';
 import { BoardCard } from '../components/Board';
-import { getAllBoards, createBoard, deleteBoard } from '../Services';
+import { getAllBoards, createBoard, deleteBoard, updateBoard } from '../Services';
 import { Board } from '../Services/types';
 
 export const BoardsScreen: React.FC = () =>
@@ -13,8 +13,18 @@ export const BoardsScreen: React.FC = () =>
     const [newBoardDescription, setNewBoardDescription] = useState('');
     const [newBoardThumbnail, setNewBoardThumbnail] = useState('');
     
+    const [editModalVisible, setEditModalVisible] = useState(false);
+    const [editingBoard, setEditingBoard] = useState<Board | null>(null);
+    const [editBoardName, setEditBoardName] = useState('');
+    const [editBoardDescription, setEditBoardDescription] = useState('');
+    const [editBoardThumbnail, setEditBoardThumbnail] = useState('');
+    const [showEditCancelConfirmation, setShowEditCancelConfirmation] = useState(false);
+    
     const [showCreateConfirmation, setShowCreateConfirmation] = useState(false);
     const [createConfirmationOpacity] = useState(new Animated.Value(0));
+    
+    const [showUpdateConfirmation, setShowUpdateConfirmation] = useState(false);
+    const [updateConfirmationOpacity] = useState(new Animated.Value(0));
     
     const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
     const [deleteConfirmationOpacity] = useState(new Animated.Value(0));
@@ -105,11 +115,102 @@ export const BoardsScreen: React.FC = () =>
         router.push(`/board?boardId=${board.id}`);
     };
 
+    const handleEditBoard = (board: Board) =>
+    {
+        setEditingBoard(board);
+        setEditBoardName(board.name);
+        setEditBoardDescription(board.description);
+        setEditBoardThumbnail(board.thumbnailPhoto);
+        setEditModalVisible(true);
+    };
+
+    const handleUpdateBoard = () =>
+    {
+        if (!editBoardName.trim())
+        {
+            Alert.alert('Error', 'Board name is required');
+            return;
+        }
+
+        if (editingBoard)
+        {
+            const thumbnailUrl = editBoardThumbnail.trim() || 'https://via.placeholder.com/400x150/4A90E2/ffffff?text=Board';
+            
+            updateBoard(editingBoard.id, {
+                name: editBoardName.trim(),
+                description: editBoardDescription.trim(),
+                thumbnailPhoto: thumbnailUrl
+            });
+
+            setEditModalVisible(false);
+            setEditingBoard(null);
+            setEditBoardName('');
+            setEditBoardDescription('');
+            setEditBoardThumbnail('');
+            refreshBoards();
+            
+            setShowUpdateConfirmation(true);
+            Animated.sequence([
+                Animated.timing(updateConfirmationOpacity, {
+                    toValue: 1,
+                    duration: 300,
+                    useNativeDriver: true,
+                }),
+                Animated.delay(1000),
+                Animated.timing(updateConfirmationOpacity, {
+                    toValue: 0,
+                    duration: 500,
+                    useNativeDriver: true,
+                }),
+            ]).start(() => setShowUpdateConfirmation(false));
+        }
+    };
+
+    const boardHasChanges = editingBoard && (
+        editBoardName !== editingBoard.name ||
+        editBoardDescription !== editingBoard.description ||
+        editBoardThumbnail !== editingBoard.thumbnailPhoto
+    );
+
+    const handleEditCancel = () =>
+    {
+        if (boardHasChanges)
+        {
+            setEditModalVisible(false);
+            setShowEditCancelConfirmation(true);
+        }
+        else
+        {
+            setEditModalVisible(false);
+            setEditingBoard(null);
+            setEditBoardName('');
+            setEditBoardDescription('');
+            setEditBoardThumbnail('');
+        }
+    };
+
+    const handleKeepEditing = () =>
+    {
+        setShowEditCancelConfirmation(false);
+        setEditModalVisible(true);
+    };
+
+    const handleConfirmDiscard = () =>
+    {
+        setShowEditCancelConfirmation(false);
+        setEditModalVisible(false);
+        setEditingBoard(null);
+        setEditBoardName('');
+        setEditBoardDescription('');
+        setEditBoardThumbnail('');
+    };
+
     const renderBoard = ({ item }: { item: Board }) => (
         <BoardCard
             board={item}
             onPress={() => handleBoardPress(item)}
             onDelete={() => handleDeleteBoard(item.id, item.name)}
+            onEdit={() => handleEditBoard(item)}
         />
     );
 
@@ -195,14 +296,116 @@ export const BoardsScreen: React.FC = () =>
                     </View>
                 </Modal>
                 
+                <Modal
+                    visible={editModalVisible}
+                    animationType="slide"
+                    transparent={true}
+                    onRequestClose={() => setEditModalVisible(false)}
+                >
+                    <View style={styles.modalOverlay}>
+                        <View style={styles.modalContent}>
+                            <Text style={styles.modalTitle}>Edit Board</Text>
+                            
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Board Name *"
+                                value={editBoardName}
+                                onChangeText={setEditBoardName}
+                                maxLength={50}
+                            />
+                            
+                            <TextInput
+                                style={[styles.input, styles.textArea]}
+                                placeholder="Description (optional)"
+                                value={editBoardDescription}
+                                onChangeText={setEditBoardDescription}
+                                multiline
+                                numberOfLines={3}
+                                maxLength={150}
+                            />
+                            
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Thumbnail URL (optional)"
+                                value={editBoardThumbnail}
+                                onChangeText={setEditBoardThumbnail}
+                            />
+
+                            <View style={styles.modalButtons}>
+                                <TouchableOpacity
+                                    activeOpacity={0.7}
+                                    style={[styles.modalButton, styles.cancelButton]}
+                                    onPress={handleEditCancel}
+                                >
+                                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity 
+                                    style={[styles.modalButton, styles.createButton, !boardHasChanges && styles.disabledButton]}
+                                    onPress={handleUpdateBoard}
+                                    disabled={!boardHasChanges}
+                                >
+                                    <Text style={[styles.createButtonText, !boardHasChanges && styles.disabledButtonText]}>Update</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </View>
+                </Modal>
+                
+                {/* Board Edit Cancel Confirmation */}
+                <Modal
+                    animationType="fade"
+                    transparent={true}
+                    visible={showEditCancelConfirmation}
+                    onRequestClose={() => setShowEditCancelConfirmation(false)}
+                >
+                    <View style={styles.confirmationOverlay}>
+                        <View style={styles.confirmationDialog}>
+                            <Text style={styles.confirmationTitle}>Discard Changes?</Text>
+                            <Text style={styles.confirmationText}>
+                                You have unsaved changes. Are you sure you want to discard them?
+                            </Text>
+                            <View style={styles.confirmationButtons}>
+                                <TouchableOpacity
+                                    activeOpacity={0.7}
+                                    style={[styles.confirmationButton, styles.confirmationCancelButton]}
+                                    onPress={handleKeepEditing}
+                                >
+                                    <Text style={styles.confirmationButtonText}>Keep Editing</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    activeOpacity={0.7}
+                                    style={[styles.confirmationButton, styles.confirmationDeleteButton]}
+                                    onPress={handleConfirmDiscard}
+                                >
+                                    <Text style={styles.confirmationButtonText}>Discard</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </View>
+                </Modal>
+                
                 {showCreateConfirmation && (
                     <Animated.View 
                         style={[
                             styles.confirmationToast,
                             { opacity: createConfirmationOpacity }
                         ]}
+                        pointerEvents="none"
                     >
-                        <Text style={styles.confirmationText}>✓ Board created successfully</Text>
+                        <Text style={styles.confirmationToastText}>✓ Board created successfully</Text>
+                    </Animated.View>
+                )}
+                
+                {showUpdateConfirmation && (
+                    <Animated.View 
+                        style={[
+                            styles.confirmationToast,
+                            { opacity: updateConfirmationOpacity }
+                        ]}
+                        pointerEvents="none"
+                    >
+                        <Text style={styles.confirmationToastText}>✓ Changes saved successfully</Text>
                     </Animated.View>
                 )}
                 
@@ -212,8 +415,9 @@ export const BoardsScreen: React.FC = () =>
                             styles.confirmationToast,
                             { opacity: deleteConfirmationOpacity }
                         ]}
+                        pointerEvents="none"
                     >
-                        <Text style={styles.confirmationText}>✓ Board deleted successfully</Text>
+                        <Text style={styles.confirmationToastText}>✓ Board deleted successfully</Text>
                     </Animated.View>
                 )}
             </View>
@@ -352,7 +556,79 @@ const styles = StyleSheet.create(
         shadowOpacity: 0.25,
         shadowRadius: 4,
     },
+    confirmationToastText:
+    {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '600',
+    },
     confirmationText:
+    {
+        color: '#666',
+        fontSize: 16,
+        textAlign: 'center',
+        lineHeight: 22,
+    },
+    disabledButton:
+    {
+        backgroundColor: '#ccc',
+        opacity: 0.6,
+    },
+    disabledButtonText:
+    {
+        color: '#999',
+    },
+    confirmationOverlay:
+    {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    confirmationDialog:
+    {
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        padding: 24,
+        width: '80%',
+        maxWidth: 400,
+        elevation: 5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+    },
+    confirmationTitle:
+    {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#333',
+        marginBottom: 12,
+        textAlign: 'center',
+    },
+    confirmationButtons:
+    {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: 20,
+        gap: 12,
+    },
+    confirmationButton:
+    {
+        flex: 1,
+        padding: 12,
+        borderRadius: 8,
+        alignItems: 'center',
+    },
+    confirmationCancelButton:
+    {
+        backgroundColor: '#6c757d',
+    },
+    confirmationDeleteButton:
+    {
+        backgroundColor: '#dc3545',
+    },
+    confirmationButtonText:
     {
         color: '#fff',
         fontSize: 16,

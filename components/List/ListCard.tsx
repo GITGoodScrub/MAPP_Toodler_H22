@@ -8,14 +8,16 @@ interface ListCardProps
     taskCount?: number;
     onPress?: () => void;
     onDelete?: () => void;
+    onEdit?: () => void;
 }
 
-export const ListCard: React.FC<ListCardProps> = ({ list, taskCount = 0, onPress, onDelete }) =>
+export const ListCard: React.FC<ListCardProps> = ({ list, taskCount = 0, onPress, onDelete, onEdit }) =>
 {
     return (
         <TouchableOpacity 
             style={[styles.container, { borderLeftColor: list.color }]} 
             onPress={onPress}
+            onLongPress={onEdit}
             activeOpacity={0.7}
         >
             <View style={styles.header}>

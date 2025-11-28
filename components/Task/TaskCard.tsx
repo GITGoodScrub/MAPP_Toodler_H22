@@ -9,14 +9,16 @@ interface TaskCardProps
     onToggleComplete?: () => void;
     onDelete?: () => void;
     onMove?: () => void;
+    onEdit?: () => void;
 }
 
-export const TaskCard: React.FC<TaskCardProps> = ({ task, onPress, onToggleComplete, onDelete, onMove }) =>
+export const TaskCard: React.FC<TaskCardProps> = ({ task, onPress, onToggleComplete, onDelete, onMove, onEdit }) =>
 {
     return (
         <TouchableOpacity 
             style={[styles.container, task.isFinished && styles.containerFinished]} 
             onPress={onPress}
+            onLongPress={onEdit}
             activeOpacity={0.7}
         >
             <View style={styles.content}>

@@ -7,21 +7,22 @@ interface BoardCardProps
     board: Board;
     onPress?: () => void;
     onDelete?: () => void;
+    onEdit?: () => void;
 }
 
-export const BoardCard: React.FC<BoardCardProps> = ({ board, onPress, onDelete }) =>
+export const BoardCard: React.FC<BoardCardProps> = ({ board, onPress, onDelete, onEdit }) =>
 {
     return (
         <TouchableOpacity 
             style={styles.container} 
             onPress={onPress}
+            onLongPress={onEdit}
             activeOpacity={0.7}
         >
             <Image 
                 source={{ uri: board.thumbnailPhoto }} 
                 style={styles.thumbnail}
                 resizeMode="cover"
-                pointerEvents="none"
             />
             <View style={styles.overlay} pointerEvents="box-none">
                 <View style={styles.content}>
